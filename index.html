@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>War History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body class="container mt-3">
+    <div class="d-flex justify-content-between mb-5">
+        <h1 class="m-0"><a href="/" class="text-decoration-none">NVN</a></h1>
+        <div class="d-flex">
+            <div class="me-3 d-flex align-items-center">
+                <i class="bi bi-circle-half p-2 me-2 cursor-pointer" id="dark-mode-switch"></i>
+                <select name="lang" id="lang-select" class="form-select">
+                    <option value="en" selected>EN</option>
+                    <option value="vi">VI</option>
+                </select>
+            </div>
+            <div class="d-flex flex-column justify-content-center d-none" id="header-user-info">
+                <div>
+                    <span class="badge bg-primary" id="header-user-username"></span>
+                    <span class="badge bg-info d-none" id="header-admin-label">Admin</span>
+                </div>
+                <button type="button" class="btn btn-link p-0" id="logout-btn">Log Out</button>
+            </div>
+            <button type="button" class="btn btn-link p-0" id="logout-btn">Log In</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 col-md-6">
+            <div class="position-relative h-100">
+                <input id="t-search-i" class="form-control h-100" type="text" placeholder="Enter event name..."
+                    code-val="">
+                <div id="s-result-popup">
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6">
+            <div class="d-flex align-items-center justify-content-end">
+                <div class="d-flex flex-column me-2">
+                    <span id="numberOfPage">0</span>
+                    <span>PAGES</span>
+                </div>
+                <div class="d-none" id="createPageCtn">
+                    <a href="#" class="btn btn-primary" title="Create new page" id="createPageBtn">
+                        <i class="bi bi-plus-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="events-ctn" class="row mt-5"></div>
+    <div class="toast-container position-absolute top-0 start-50 translate-middle-x mt-5">
+        <div class="toast text-white bg-success border-0" id="success_toast">
+            <div class="toast-body">
+
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script src="index.js"></script>
+<script>
+    $(function () {
+        $('#lang-select').on('change', function () {
+            window.location.href = 'http://127.0.0.1:8000/lang/change' + '?lang=' + $(this).val();
+        });
+        $('#dark-mode-switch').on('click', function () {
+            let expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            if (!$('html').attr('data-bs-theme')) {
+                $('html').attr('data-bs-theme', 'dark');
+                document.cookie = `darkmode=dark;expires=${expires.toString()}`;
+            } else {
+                $('html').attr('data-bs-theme', '');
+                document.cookie = `darkmode=;expires=${expires.toString()}`;
+            }
+        });
+    });
+</script>
+
+<!-- event page loading -->
+<script>
+    var apiEventGetCreate;
+    $(function () {
+        let firstLoaded = false;
+        if (!firstLoaded) {
+            eventLoading();
+        };
+        $('#t-search-i').on('input', function () {
+            let searchVal = $(this).val();
+            eventLoading(searchVal);
+        })
+        $(document).on('click', '.srp-elm', function () {
+            $('#t-search-i').val($(this).html());
+            $('#t-search-i').attr('code-val', $(this).attr('code-val'));
+            $('#t-search-i').trigger('input');
+        })
+        $('#t-search-i').on('focus', function () {
+            $('#s-result-popup').css('display', 'block');
+        })
+        $('#t-search-i').on('focusout', function () {
+            setTimeout(function () {
+                $('#s-result-popup').css('display', 'none');
+            }, 200);
+        })
+        function eventLoading(searchVal = '') {
+            $('#s-result-popup').html('');
+            let lang = $('#lang-select').val();
+            let searchData = {
+                search: searchVal,
+                lang: lang
+            };
+            if (searchVal === '' && firstLoaded) {
+                return;
+            } else {
+                firstLoaded = true;
+            }
+            $.get("http://127.0.0.1:8000/api/events", searchData, function (data, status) {
+                $('#events-ctn').html('');
+                let events = data.events;
+                let see_more = data.meta.see_more;
+                if (!apiEventGetCreate) {
+                    let links = data.links;
+                    apiEventGetCreate = (typeof links == 'object') ? data.links.create : null;
+                    $('#createPageBtn').attr('href', apiEventGetCreate ?? '#');
+                }
+                let i = 0;
+                while (events[i]) {
+                    if (searchVal !== '') $('#s-result-popup').append(`<div class="srp-elm" code-val="${events[i].code_name}">${events[i].name}</div>`);
+                    $('#events-ctn').append(`
+                        <div class="col-12 col-md-6 mb-3">
+                            <div class="event card">
+                                <img class="card-img-top" src="${events[i].thumbnail}">
+                                <div class="card-body">
+                                    <h4 class="card-title">${events[i].year}: ${events[i].name}</h4>
+                                    <a href="events/${events[i].id}">${see_more}</a>
+                                </div>
+                            </div>
+                        </div>
+                        `);
+                    i++;
+                }
+                $('#numberOfPage').text(events.length);
+            });
+        }
+    });
+</script>
+
+<script>
+    $(function () {
+        let regist_status = '';
+        if (regist_status) {
+            new bootstrap.Toast(document.getElementById('success_toast')).show();
+        }
+    });
+</script>
+
+<!-- login, logout -->
+<script>
+    var userId;
+    var isAdmin;
+    var homeUrl = 'http://127.0.0.1:8000';
+    var commonEventDetailPageUrl = 'http://127.0.0.1:8000/events';
+    var currentUrl = location.href;
+    var isEventDetailPage = currentUrl.indexOf(commonEventDetailPageUrl) != -1 ? true : false;
+    $(function () {
+        // api authenticate
+        if (location.href == 'http://127.0.0.1:8000/login' || location.href == 'http://127.0.0.1:8000/register') {
+            return false;
+        }
+        let authUrl = 'http://127.0.0.1:8000/api/user';
+        let api_token = getCookie('api_token');
+        if(!api_token) {
+            return false;
+        }
+        let payload = {
+            api_token: api_token
+        };
+        $.ajax({
+            url: authUrl,
+            method: 'get',
+            data: payload,
+            dataType: "json",
+            complete: function(jqXHR, textStatus){
+            }
+        });
+        return false;
+
+        $.post(authUrl, payload, function (data, status) {
+            $('#createPageCtn').removeClass('d-none');
+            let userInfo = data.info;
+            userId = userInfo.id;
+            let username = userInfo.username;
+            isAdmin = data.is_admin;
+            processHeaderAfterLogin(username, isAdmin);
+            if (isEventDetailPage && isAdmin) {
+                $('#removeEventPageBtn').removeClass('d-none');
+            }
+        });
+        let logoutUrl = 'http://127.0.0.1:8000/api/logout';
+        $('#logout-btn').on('click', function () {
+            $.post(logoutUrl, payload, function (data, status) {
+                //should redirect or reload home for safety and simple
+                location.href = homeUrl;
+            });
+        });
+
+        function processHeaderAfterLogin(username, isAdmin) {
+            $('#header-user-info').removeClass('d-none');
+            $('#header-user-username').text(username);
+            $('#header-login-part').addClass('d-none');
+            if (isAdmin) $('#header-admin-label').removeClass('d-none');
+        }
+    });
+</script>
+
+</html>
