@@ -28,7 +28,7 @@
                 </div>
                 <button type="button" class="btn btn-link p-0" id="logout-btn">Log Out</button>
             </div>
-            <button type="button" class="btn btn-link p-0" id="logout-btn">Log In</button>
+            <button type="button" class="btn btn-link p-0" id="login-btn">Log In</button>
         </div>
     </div>
     <div class="row">
@@ -124,7 +124,6 @@
             $.get("http://127.0.0.1:8000/api/events", searchData, function (data, status) {
                 $('#events-ctn').html('');
                 let events = data.events;
-                let see_more = data.meta.see_more;
                 if (!apiEventGetCreate) {
                     let links = data.links;
                     apiEventGetCreate = (typeof links == 'object') ? data.links.create : null;
@@ -139,7 +138,7 @@
                                 <img class="card-img-top" src="${events[i].thumbnail}">
                                 <div class="card-body">
                                     <h4 class="card-title">${events[i].year}: ${events[i].name}</h4>
-                                    <a href="events/${events[i].id}">${see_more}</a>
+                                    <a href="events/${events[i].id}">See more</a>
                                 </div>
                             </div>
                         </div>
